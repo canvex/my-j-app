@@ -5,7 +5,6 @@ import {
   View,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
@@ -13,8 +12,8 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { usePracticeEngine } from "../hooks/usePracticeEngine";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { TargetText } from "../components/TargetText";
-import { CategorySelector } from "../components/CategorySelector";
 import { FLICK_HINTS } from "../constants/flickHints";
 import { useQuestionContext } from "../context/QuestionContext";
 
@@ -129,15 +128,13 @@ export default function PracticeScreen(): React.JSX.Element {
                 {/* 題目與高亮區域 */}
                 <View style={styles.targetSection}>
                   <Text style={styles.sentenceText}>{currentQ.target}</Text>
-
                   <TargetText
                     target={currentQ.kana}
                     input={input}
                     firstMismatchIndex={firstMismatchIndex}
                     isDesktop={isDesktop}
                   />
-
-                  {currentQ.meaning && (
+                  {Boolean(currentQ.meaning) && (
                     <Text style={styles.meaningText}>{currentQ.meaning}</Text>
                   )}
                 </View>

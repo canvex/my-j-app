@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import {
   StyleSheet,
+  Alert,
   View,
   Text,
   TextInput,
@@ -15,6 +16,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuestionContext } from "../context/QuestionContext";
 import { CategoryKey, Question } from "../types/typing";
 import { showAlert, showConfirm, copyToClipboard } from "../utils/alert";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system/legacy";
+import * as DocumentPicker from "expo-document-picker";
 
 // 給 AI 的預設提示詞範本
 const AI_PROMPT_TEMPLATE = `請幫我生成 10 題適合日文假名打字練習的題目。
@@ -76,6 +80,7 @@ export function SettingsScreen() {
   // 1. 全域 JSON 匯出 (跨平台)
   const handleExportGlobalJSON = async () => {
     const jsonString = exportJSON();
+    const fileName = `ja_backup_${new Date().toISOString().slice(0, 10)}.json`;
 
     if (Platform.OS === "web") {
       try {
@@ -83,7 +88,7 @@ export function SettingsScreen() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `flick_typing_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        a.download = fileName;
         a.click();
         URL.revokeObjectURL(url);
       } catch (e) {
@@ -91,9 +96,12 @@ export function SettingsScreen() {
       }
     } else {
       try {
-        await Share.share({
-          title: "日文打字題庫全域備份",
-          message: jsonString,
+        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+        await FileSystem.writeAsStringAsync(fileUri, jsonString);
+
+        await Sharing.shareAsync(fileUri, {
+          mimeType: "application/json",
+          dialogTitle: "匯出題庫",
         });
       } catch (error) {
         showAlert("匯出失敗", "無法啟動分享選單");
@@ -117,16 +125,42 @@ export function SettingsScreen() {
     reader.readAsText(file);
   };
 
-  // 3. 手機版文字貼上全域 JSON 匯入
+  // 1. 處理「文字輸入框」的 JSON 匯入
+  // 手機版：針對 TextInput 裡的文字做匯入
   const handleTextGlobalImport = async () => {
     if (!globalJsonInput.trim()) {
-      showAlert("提示", "請先貼上備份的 JSON 內容");
+      showAlert("提示", "請先在此貼上 JSON 文字內容！");
       return;
     }
+
+    // 直接呼叫你的核心匯入邏輯 importJSON
     const result = await importJSON(globalJsonInput);
     showAlert(result.success ? "成功" : "失敗", result.message);
+
     if (result.success) {
-      setGlobalJsonInput("");
+      setGlobalJsonInput(""); // 成功後清空輸入框
+    }
+  };
+
+  // 2. 處理「手機選取檔案」的 JSON 匯入
+  const handleMobileFileImport = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/json", "text/plain", "*/*"],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const fileUri = result.assets[0].uri;
+        const response = await fetch(fileUri);
+        const fileContent = await response.text();
+
+        // 讀完檔案後，同樣傳給 importJSON 處理！
+        const importResult = await importJSON(fileContent);
+        showAlert(importResult.success ? "成功" : "失敗", importResult.message);
+      }
+    } catch (error: any) {
+      showAlert("失敗", `檔案讀取失敗：${error.message}`);
     }
   };
 
@@ -226,7 +260,8 @@ export function SettingsScreen() {
               />
             </View>
           ) : (
-            <View style={{ gap: 8 }}>
+            <View style={{ gap: 10 }}>
+              {/* 方式 1：貼上文字匯入 */}
               <TextInput
                 style={styles.jsonInput}
                 multiline
@@ -239,7 +274,28 @@ export function SettingsScreen() {
                 style={styles.globalImportBtn}
                 onPress={handleTextGlobalImport}
               >
-                <Text style={styles.globalImportBtnText}>確認全域匯入</Text>
+                <Text style={styles.globalImportBtnText}>確認貼上並匯入</Text>
+              </TouchableOpacity>
+
+              {/* 分隔線或提示 */}
+              <Text
+                style={{
+                  textAlign: "center",
+                  color: "#888",
+                  marginVertical: 4,
+                }}
+              >
+                ── 或 ──
+              </Text>
+
+              {/* 方式 2：選擇檔案匯入 */}
+              <TouchableOpacity
+                style={[styles.globalImportBtn, { backgroundColor: "#4A90E2" }]}
+                onPress={handleMobileFileImport}
+              >
+                <Text style={styles.globalImportBtnText}>
+                  📁 從手機選擇 .json 檔案
+                </Text>
               </TouchableOpacity>
             </View>
           )}
