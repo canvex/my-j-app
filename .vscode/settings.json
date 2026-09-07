@@ -1,0 +1,17 @@
+{
+  // 指定 Prettier 為預設排版工具
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  // 每次存檔時自動執行排版
+  "editor.formatOnSave": true,
+  // 存檔時自動修復 ESLint 發現的格式問題
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  // 針對 TypeScript 與 TSX 開啟預設排版
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}
