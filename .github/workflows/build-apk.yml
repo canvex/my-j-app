@@ -25,9 +25,6 @@ jobs:
           distribution: "zulu"
           java-version: "17"
 
-      - name: ⚙️ 設定 Android SDK
-        uses: actions/setup-android@v3
-
       - name: 📦 安裝專案 npm 依賴套件
         run: npm ci
 
@@ -36,7 +33,7 @@ jobs:
 
       - name: 🔑 從 Secrets 解密還原 release.keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d -i > android/app/release.keystore
 
       - name: 🏗️ Gradle 編譯 Release APK
         env:
