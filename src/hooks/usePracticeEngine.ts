@@ -5,6 +5,7 @@ import { TextInput } from "react-native";
 import { CategoryKey, Question } from "../types/typing";
 import { shuffleArray } from "../utils/shuffle";
 import { triggerHaptic } from "../utils/haptics";
+import { speaksentence } from "../utils/speak";
 import { useQuestionContext } from "../context/QuestionContext";
 
 export function usePracticeEngine(initialCategory: CategoryKey = "daily") {
@@ -47,6 +48,23 @@ export function usePracticeEngine(initialCategory: CategoryKey = "daily") {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+  };
+
+  // ⭐️ 新增：啟動 / 繼續計時器 (Continue Timer)
+  const startTimer = () => {
+    // 如果計時器已經在跑，就不重複啟動
+    if (timerRef.current) return;
+
+    // 紀錄這次啟動的時間點，扣除已耗費的時間 (elapsedTime)
+    const baseTime = Date.now() - elapsedTime * 1000;
+
+    if (!startTime) {
+      setStartTime(Date.now());
+    }
+
+    timerRef.current = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - baseTime) / 1000));
+    }, 100);
   };
 
   useEffect(() => {
@@ -101,19 +119,21 @@ export function usePracticeEngine(initialCategory: CategoryKey = "daily") {
 
     if (text === currentKana) {
       triggerHaptic("success");
+      speaksentence(text);
       const newCharCount = charCount + currentKana.length;
       setCharCount(newCharCount);
+      stopTimer();
 
-      if (currentIndex + 1 < questions.length) {
-        setCurrentIndex((prev) => prev + 1);
-        setInput("");
+      // if (currentIndex + 1 < questions.length) {
+      //   setCurrentIndex((prev) => prev + 1);
+      //   setInput("");
 
-        // 清空原生 TextInput 快取，防止電腦 Enter 組字帶到下一題
-        inputRef.current?.clear();
-      } else {
-        stopTimer();
-        setIsFinished(true);
-      }
+      //   // 清空原生 TextInput 快取，防止電腦 Enter 組字帶到下一題
+      //   inputRef.current?.clear();
+      // } else {
+      //   stopTimer();
+      //   setIsFinished(true);
+      // }
     }
   };
 
@@ -143,6 +163,7 @@ export function usePracticeEngine(initialCategory: CategoryKey = "daily") {
   const goToNextQuestion = useCallback(() => {
     if (currentIndex + 1 < questions.length) {
       setCurrentIndex((prev) => prev + 1);
+      startTimer();
       setInput("");
       inputRef.current?.clear();
     }
@@ -152,6 +173,7 @@ export function usePracticeEngine(initialCategory: CategoryKey = "daily") {
   const goToPrevQuestion = useCallback(() => {
     if (currentIndex > 0) {
       setCurrentIndex((prev) => prev - 1);
+      startTimer();
       setInput("");
       inputRef.current?.clear();
     }

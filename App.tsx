@@ -12,6 +12,7 @@ import {
 
 import PracticeScreen from "./src/screens/PracticeScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
+import about from "./src/screens/about";
 import { QuestionProvider } from "./src/context/QuestionContext";
 
 const Tab = createBottomTabNavigator();
@@ -52,6 +53,16 @@ function MainTabs() {
           tabBarLabel: "設定",
           tabBarIcon: ({ color }) => (
             <Text style={{ fontSize: 18, color }}>⚙️</Text>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="about"
+        component={about}
+        options={{
+          tabBarLabel: "關於",
+          tabBarIcon: ({ color }) => (
+            <Text style={{ fontSize: 18, color }}>🙈</Text>
           ),
         }}
       />
