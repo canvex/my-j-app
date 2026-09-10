@@ -3,7 +3,13 @@ name: Build Android APK
 on:
   push:
     branches: [main, master]
-  workflow_dispatch:
+    tags:
+      - "v*" # 當 Push 包含 v 開頭的 Tag 時也會觸發 (例如 v1.0.0)
+  workflow_dispatch: # 支援在 GitHub 網頁手動點擊執行
+
+# ⚠️ 必須寫入權限才能讓 GitHub Actions 自動發布 Release
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -45,8 +51,25 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
-      - name: 📤 上傳產出的 APK 至 GitHub Artifacts
+      - name: 📤 上傳產出的 APK 至 GitHub Artifacts (供臨時測試下載)
         uses: actions/upload-artifact@v4
         with:
           name: Japanese-Keyboard-APK
           path: android/app/build/outputs/apk/release/*.apk
+
+      - name: 🏷️ 產生動態 Release Tag 名稱 (若無指定 Git Tag 時使用)
+        id: tag
+        run: echo "TAG_NAME=v$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_ENV
+
+      - name: 🚀 自動建立 GitHub Release 並上傳 APK 檔案
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || env.TAG_NAME }}
+          name: "Release ${{ github.ref_type == 'tag' && github.ref_name || env.TAG_NAME }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            android/app/build/outputs/apk/release/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
