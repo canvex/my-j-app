@@ -10,7 +10,7 @@ export default function AboutScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>日文九宮格打字 v1.2.5</Text>
+      <Text style={styles.text}>日文九宮格打字 v1.3.3</Text>
       <Button title="Press to hear some words" onPress={speak} />
     </View>
   );
