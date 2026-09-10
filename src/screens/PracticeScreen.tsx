@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { TargetText } from "../components/TargetText";
 import { FLICK_HINTS } from "../constants/flickHints";
 import { useQuestionContext } from "../context/QuestionContext";
+import { speaksentence } from "../utils/speak";
 
 export default function PracticeScreen(): React.JSX.Element {
   const { width } = useWindowDimensions();
@@ -188,6 +189,14 @@ export default function PracticeScreen(): React.JSX.Element {
                   autoCapitalize="none"
                 />
 
+                <TouchableOpacity
+                  style={styles.audioBtn}
+                  onPress={() => speaksentence(currentQ.kana)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.audioBtnText}>🔊 點擊聽發音</Text>
+                </TouchableOpacity>
+
                 {/* 題目導引區域 (上一題 / 下一題) */}
                 <View style={styles.navRow}>
                   <TouchableOpacity
@@ -211,20 +220,22 @@ export default function PracticeScreen(): React.JSX.Element {
                   <TouchableOpacity
                     style={[
                       styles.navBtn,
-                      currentIndex === questions.length - 1 &&
-                        styles.navBtnDisabled,
+                      // 只有在已經完成練習時才顯示停用樣式
+                      isFinished && styles.navBtnDisabled,
                     ]}
                     onPress={goToNextQuestion}
-                    disabled={currentIndex === questions.length - 1}
+                    disabled={isFinished}
                   >
                     <Text
                       style={[
                         styles.navBtnText,
-                        currentIndex === questions.length - 1 &&
-                          styles.navBtnTextDisabled,
+                        isFinished && styles.navBtnTextDisabled,
                       ]}
                     >
-                      下一題 ➡️
+                      {/* 最後一題時顯示「完成測驗 🎉」，否則顯示「下一題 ➡️」 */}
+                      {currentIndex === questions.length - 1
+                        ? "完成測驗 🎉"
+                        : "下一題 ➡️"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -437,6 +448,23 @@ const styles = StyleSheet.create({
   },
   inputActive: { borderColor: "#0066FF", backgroundColor: "#FFFFFF" },
   inputError: { borderColor: "#FF4D4F", backgroundColor: "#FFF2F0" },
+  audioBtn: {
+    backgroundColor: "#EEF2FF", // 淡淡的藍紫色背景，突出點擊感
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    // alignSelf: "center", // 讓按鈕寬度隨文字長度自適應（居中）
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: "#C7D2FE",
+  },
+  audioBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#4F46E5", // 主題強調色
+  },
   statsContainer: { flexDirection: "row", gap: 12 },
   statCard: {
     flex: 1,

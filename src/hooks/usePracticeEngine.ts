@@ -9,7 +9,7 @@ import { speaksentence } from "../utils/speak";
 import { useQuestionContext } from "../context/QuestionContext";
 
 export function usePracticeEngine(initialCategory: CategoryKey = "daily") {
-  const { categories, questionsBank } = useQuestionContext(); // 👈 取得 categories 與最新的 questionsBank
+  const { categories, questionsBank } = useQuestionContext();
   const [category, setCategory] = useState<CategoryKey>(initialCategory);
 
   // 當當前選擇的分類被刪除時，自動防護切換到第一個現有分類
@@ -50,33 +50,29 @@ export function usePracticeEngine(initialCategory: CategoryKey = "daily") {
     }
   };
 
-  // ⭐️ 新增：啟動 / 繼續計時器 (Continue Timer)
-  const startTimer = () => {
-    // 如果計時器已經在跑，就不重複啟動
-    if (timerRef.current) return;
-
-    // 紀錄這次啟動的時間點，扣除已耗費的時間 (elapsedTime)
-    const baseTime = Date.now() - elapsedTime * 1000;
-
-    if (!startTime) {
-      setStartTime(Date.now());
-    }
-
-    timerRef.current = setInterval(() => {
-      setElapsedTime(Math.floor((Date.now() - baseTime) / 1000));
-    }, 100);
-  };
-
   useEffect(() => {
     return () => stopTimer();
   }, []);
+
+  // 🌟【關鍵修復】: 當題號 (currentIndex) 或 狀態 (isFinished) 改變時，自動鎖定輸入框並喚醒鍵盤
+  useEffect(() => {
+    if (!isFinished) {
+      // 使用 requestAnimationFrame 或 100ms 延遲，確保畫面已渲染完畢再 focus
+      const timer = setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentIndex, isFinished]);
 
   const startNewSession = useCallback(
     (selectedCategory: CategoryKey = category) => {
       triggerHaptic("light");
       stopTimer();
 
-      // 修正：改用動態 Context 的 questionsBank 讀取題目，而非靜態檔
       const bankData =
         questionsBank[selectedCategory] ||
         questionsBank[categories[0]?.id] ||
@@ -91,8 +87,6 @@ export function usePracticeEngine(initialCategory: CategoryKey = "daily") {
       setElapsedTime(0);
       setIsFinished(false);
       setCharCount(0);
-
-      setTimeout(() => inputRef.current?.focus(), 100);
     },
     [category, questionsBank, categories],
   );
@@ -114,7 +108,6 @@ export function usePracticeEngine(initialCategory: CategoryKey = "daily") {
       }, 100);
     }
 
-    // 改用 kana (平假名) 作為比對標準
     const currentKana = currentQ.kana;
 
     if (text === currentKana) {
@@ -123,17 +116,6 @@ export function usePracticeEngine(initialCategory: CategoryKey = "daily") {
       const newCharCount = charCount + currentKana.length;
       setCharCount(newCharCount);
       stopTimer();
-
-      // if (currentIndex + 1 < questions.length) {
-      //   setCurrentIndex((prev) => prev + 1);
-      //   setInput("");
-
-      //   // 清空原生 TextInput 快取，防止電腦 Enter 組字帶到下一題
-      //   inputRef.current?.clear();
-      // } else {
-      //   stopTimer();
-      //   setIsFinished(true);
-      // }
     }
   };
 
@@ -143,7 +125,6 @@ export function usePracticeEngine(initialCategory: CategoryKey = "daily") {
       ? Math.round((currentIndex / questions.length) * 100)
       : 0;
 
-  // 核心修正：針對 kana 找出第一個打錯或尚未輸入的位置索引
   let firstMismatchIndex = 0;
   while (
     firstMismatchIndex < input.length &&
@@ -153,27 +134,28 @@ export function usePracticeEngine(initialCategory: CategoryKey = "daily") {
     firstMismatchIndex++;
   }
 
-  // 是否當前輸入包含錯誤
   const hasError = input.length > firstMismatchIndex;
-
-  // 按鍵提示永遠指向平假名 (kana) 的「第一個出錯的字」或「下一個該打的字」
   const nextChar = currentQ.kana[firstMismatchIndex] || "";
 
-  // 手動切換下一題
+  // 簡化後的切換上一題 / 下一題 (無需手動呼叫 focus，交給 useEffect 處理)
   const goToNextQuestion = useCallback(() => {
     if (currentIndex + 1 < questions.length) {
+      // 還有下一題：正常切換
       setCurrentIndex((prev) => prev + 1);
-      startTimer();
+      setElapsedTime(0);
       setInput("");
       inputRef.current?.clear();
+    } else {
+      // 已經是最後一題：完成練習，停止計時並進入結算畫面
+      stopTimer();
+      setIsFinished(true);
     }
   }, [currentIndex, questions.length]);
 
-  // 手動切換上一題
   const goToPrevQuestion = useCallback(() => {
     if (currentIndex > 0) {
       setCurrentIndex((prev) => prev - 1);
-      startTimer();
+      setElapsedTime(0);
       setInput("");
       inputRef.current?.clear();
     }
