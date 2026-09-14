@@ -1,6 +1,7 @@
 // App.tsx
 
-import React from "react";
+// import React from "react";
+import React, { useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Text } from "react-native";
@@ -14,6 +15,7 @@ import PracticeScreen from "./src/screens/PracticeScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
 import about from "./src/screens/about";
 import { QuestionProvider } from "./src/context/QuestionContext";
+import { checkAppUpdate } from "./src/utils/checkUpdate";
 
 const Tab = createBottomTabNavigator();
 
@@ -71,6 +73,11 @@ function MainTabs() {
 }
 
 export default function App() {
+  useEffect(() => {
+    // App 開啟時自動發送請求檢查 GitHub Release
+    checkAppUpdate(true);
+  }, []);
+
   return (
     // 💡 1. 核心修正：最外層加上 SafeAreaProvider
     <SafeAreaProvider>

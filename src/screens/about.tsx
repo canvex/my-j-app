@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View, Button } from "react-native";
 import * as Speech from "expo-speech";
+import { checkAppUpdate } from "../utils/checkUpdate";
 
 export default function AboutScreen() {
   const speak = () => {
@@ -12,6 +13,7 @@ export default function AboutScreen() {
     <View style={styles.container}>
       <Text style={styles.text}>日文九宮格打字 v1.3.4</Text>
       <Button title="Press to hear some words" onPress={speak} />
+      <Button title="檢查更新" onPress={() => checkAppUpdate(false)} />
     </View>
   );
 }
